@@ -2,49 +2,35 @@
 use std::io::Write;
 use std::net::TcpListener;
 
-struct HeaderV0 {
-    correlation_id: u32,
-}
-
-struct Message {
+struct Response {
     message_size: u32,
-    header: HeaderV0,
+    header: ResponseHeader,
 }
 
-impl Message {
-    fn new(message_size: u32, correlation_id: u32) -> Message {
-        Message {
-            message_size,
-            header: HeaderV0 { correlation_id },
-        }
+struct ResponseHeader {
+    correlation_id: i32,
+}
+
+impl Response {
+    fn to_bytes(self) -> Vec<u8> {
+        let mut v = Vec::new();
+        v.extend_from_slice(&self.message_size.to_be_bytes());
+        v.extend_from_slice(&self.header.correlation_id.to_be_bytes());
+        v
     }
 }
 
 fn main() {
-    let message = Message::new(2, 7);
-    let message_id = message
-        .message_size
-        .to_be_bytes()
-        .iter()
-        .map(|b| format!("{:02X}", b))
-        .collect::<Vec<_>>()
-        .join(" ");
-    let correlation_id = message
-        .header
-        .correlation_id
-        .to_be_bytes()
-        .iter()
-        .map(|b| format!("{:02X}", b))
-        .collect::<Vec<_>>()
-        .join(" ");
-
     let listener = TcpListener::bind("127.0.0.1:9092").unwrap();
     for stream in listener.incoming() {
         match stream {
             Ok(mut stream) => {
-                use std::io::Write;
-                let response = format!("{message_id}\n{correlation_id}\n");
-                stream.write_all(response.as_bytes()).unwrap();
+                let header = Response {
+                    message_size: 0,
+                    header: ResponseHeader { correlation_id: 7 },
+                };
+                let bytes = header.to_bytes();
+                stream.write_all(&bytes).unwrap();
             }
             Err(e) => {
                 println!("error: {}", e);
