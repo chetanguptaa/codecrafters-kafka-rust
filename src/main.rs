@@ -1,4 +1,5 @@
 #![allow(unused_imports)]
+use serde::{Deserialize, Serialize};
 use std::io::{Read, Write};
 use std::net::TcpListener;
 use std::num::NonZeroU32;
@@ -7,12 +8,25 @@ enum ResponseHeader {
     V0(ResponseHeaderV0),
 }
 
+#[derive(Serialize, Deserialize)]
+struct ResponseAPIKey {
+    api_key: i16,
+    min_version: i16,
+    max_version: i16,
+    #[serde(rename = "TAG_BUFFER")]
+    tag_buffer: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
 struct ResponseBody {
     error_code: i16,
+    api_keys: Vec<ResponseAPIKey>,
+    // throttle_time_ms: i32,
+    // #[serde(rename = "TAG_BUFFER")]
+    // tag_buffer: Option<String>,
 }
 
 struct KafkaResponseFrame {
-    message_size: i32,
     response_header: ResponseHeader,
     body: ResponseBody,
 }
@@ -23,17 +37,23 @@ struct ResponseHeaderV0 {
 
 impl KafkaResponseFrame {
     fn to_bytes(&self) -> Vec<u8> {
-        let mut bytes = Vec::with_capacity(8);
-        bytes.extend_from_slice(&self.message_size.to_be_bytes());
-        match &self.response_header {
-            ResponseHeader::V0(header) => {
-                bytes.extend_from_slice(&header.correlation_id.to_be_bytes());
-            }
+        let body = self.body_and_header_bytes();
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&(body.len() as i32).to_be_bytes());
+        bytes.extend_from_slice(&body);
+        bytes
+    }
+    fn body_and_header_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        if let ResponseHeader::V0(h) = &self.response_header {
+            bytes.extend_from_slice(&h.correlation_id.to_be_bytes());
         }
-        match &self.body {
-            _ => {
-                bytes.extend_from_slice(&self.body.error_code.to_be_bytes());
-            }
+        bytes.extend_from_slice(&self.body.error_code.to_be_bytes());
+        bytes.extend_from_slice(&(self.body.api_keys.len() as i32).to_be_bytes());
+        for key in &self.body.api_keys {
+            bytes.extend_from_slice(&key.api_key.to_be_bytes());
+            bytes.extend_from_slice(&key.min_version.to_be_bytes());
+            bytes.extend_from_slice(&key.max_version.to_be_bytes());
         }
         bytes
     }
@@ -56,10 +76,22 @@ fn main() {
                 if request_api_version < 0 || request_api_version > 4 {
                     error_code = 35;
                 }
+                let api_key = ResponseAPIKey {
+                    api_key: 18,
+                    min_version: 0,
+                    max_version: 4,
+                    tag_buffer: None,
+                };
+                let mut api_keys = Vec::new();
+                api_keys.push(api_key);
                 let response = KafkaResponseFrame {
-                    message_size: 0,
                     response_header: ResponseHeader::V0(ResponseHeaderV0 { correlation_id }),
-                    body: { ResponseBody { error_code } },
+                    body: {
+                        ResponseBody {
+                            error_code,
+                            api_keys,
+                        }
+                    },
                 };
                 stream.write_all(&response.to_bytes()).unwrap();
             }
