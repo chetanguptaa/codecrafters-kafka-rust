@@ -21,9 +21,9 @@ struct ResponseAPIKey {
 struct ResponseBody {
     error_code: i16,
     api_keys: Vec<ResponseAPIKey>,
-    // throttle_time_ms: i32,
-    // #[serde(rename = "TAG_BUFFER")]
-    // tag_buffer: Option<String>,
+    throttle_time_ms: i32,
+    #[serde(rename = "TAG_BUFFER")]
+    tag_buffer: Option<String>,
 }
 
 struct KafkaResponseFrame {
@@ -90,6 +90,8 @@ fn main() {
                         ResponseBody {
                             error_code,
                             api_keys,
+                            throttle_time_ms: 0,
+                            tag_buffer: None,
                         }
                     },
                 };
