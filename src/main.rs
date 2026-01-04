@@ -80,7 +80,7 @@ fn main() {
                     error_code = 35;
                 }
                 let api_key = ResponseAPIKey {
-                    api_key: 17,
+                    api_key: 18,
                     min_version: 0,
                     max_version: 4,
                     tag_buffer: 0,
