@@ -14,7 +14,7 @@ struct ResponseAPIKey {
     min_version: i16,
     max_version: i16,
     #[serde(rename = "TAG_BUFFER")]
-    tag_buffer: Option<String>,
+    tag_buffer: i32,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -23,7 +23,7 @@ struct ResponseBody {
     api_keys: Vec<ResponseAPIKey>,
     throttle_time_ms: i32,
     #[serde(rename = "TAG_BUFFER")]
-    tag_buffer: Option<String>,
+    tag_buffer: i32,
 }
 
 struct KafkaResponseFrame {
@@ -54,6 +54,7 @@ impl KafkaResponseFrame {
             bytes.extend_from_slice(&key.api_key.to_be_bytes());
             bytes.extend_from_slice(&key.min_version.to_be_bytes());
             bytes.extend_from_slice(&key.max_version.to_be_bytes());
+            bytes.extend_from_slice(&key.tag_buffer.to_be_bytes());
         }
         bytes
     }
@@ -80,7 +81,7 @@ fn main() {
                     api_key: 18,
                     min_version: 0,
                     max_version: 4,
-                    tag_buffer: None,
+                    tag_buffer: 0,
                 };
                 let mut api_keys = Vec::new();
                 api_keys.push(api_key);
@@ -91,7 +92,7 @@ fn main() {
                             error_code,
                             api_keys,
                             throttle_time_ms: 0,
-                            tag_buffer: None,
+                            tag_buffer: 0,
                         }
                     },
                 };
