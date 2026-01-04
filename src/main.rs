@@ -50,6 +50,8 @@ impl KafkaResponseFrame {
         }
         bytes.extend_from_slice(&self.body.error_code.to_be_bytes());
         bytes.extend_from_slice(&(self.body.api_keys.len() as i32).to_be_bytes());
+        bytes.extend_from_slice(&self.body.throttle_time_ms.to_be_bytes());
+        bytes.extend_from_slice(&self.body.tag_buffer.to_be_bytes());
         for key in &self.body.api_keys {
             bytes.extend_from_slice(&key.api_key.to_be_bytes());
             bytes.extend_from_slice(&key.min_version.to_be_bytes());
