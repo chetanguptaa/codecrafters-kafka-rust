@@ -14,7 +14,7 @@ struct ResponseAPIKey {
     min_version: i16,
     max_version: i16,
     #[serde(rename = "TAG_BUFFER")]
-    tag_buffer: i32,
+    tag_buffer: i8,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -23,7 +23,7 @@ struct ResponseBody {
     api_keys: Vec<ResponseAPIKey>,
     throttle_time_ms: i32,
     #[serde(rename = "TAG_BUFFER")]
-    tag_buffer: i32,
+    tag_buffer: i8,
 }
 
 struct KafkaResponseFrame {
@@ -49,7 +49,7 @@ impl KafkaResponseFrame {
             bytes.extend_from_slice(&h.correlation_id.to_be_bytes());
         }
         bytes.extend_from_slice(&self.body.error_code.to_be_bytes());
-        bytes.extend_from_slice(&(self.body.api_keys.len() as i32).to_be_bytes());
+        bytes.extend_from_slice(&(self.body.api_keys.len() as i8).to_be_bytes());
         bytes.extend_from_slice(&self.body.throttle_time_ms.to_be_bytes());
         bytes.extend_from_slice(&self.body.tag_buffer.to_be_bytes());
         for key in &self.body.api_keys {
