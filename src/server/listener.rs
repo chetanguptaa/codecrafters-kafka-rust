@@ -39,11 +39,18 @@ async fn handle_connection(mut stream: TcpStream) -> anyhow::Result<()> {
             header: ResponseHeader::V0(ResponseHeaderV0 { correlation_id }),
             body: ApiVersionsResponse {
                 error_code,
-                api_keys: vec![ApiKeyVersion {
-                    api_key: 18,
-                    min_version: 0,
-                    max_version: 4,
-                }],
+                api_keys: vec![
+                    ApiKeyVersion {
+                        api_key: 18,
+                        min_version: 0,
+                        max_version: 4,
+                    },
+                    ApiKeyVersion {
+                        api_key: 75,
+                        min_version: 0,
+                        max_version: 0,
+                    },
+                ],
                 throttle_time_ms: 0,
             },
         };
