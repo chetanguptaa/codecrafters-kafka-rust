@@ -49,15 +49,15 @@ impl KafkaResponseFrame {
             bytes.extend_from_slice(&h.correlation_id.to_be_bytes());
         }
         bytes.extend_from_slice(&self.body.error_code.to_be_bytes());
-        bytes.extend_from_slice(&(self.body.api_keys.len() as i8).to_be_bytes());
-        bytes.extend_from_slice(&self.body.throttle_time_ms.to_be_bytes());
-        bytes.extend_from_slice(&self.body.tag_buffer.to_be_bytes());
+        bytes.extend_from_slice(&((self.body.api_keys.len() + 1) as i8).to_be_bytes());
         for key in &self.body.api_keys {
             bytes.extend_from_slice(&key.api_key.to_be_bytes());
             bytes.extend_from_slice(&key.min_version.to_be_bytes());
             bytes.extend_from_slice(&key.max_version.to_be_bytes());
             bytes.extend_from_slice(&key.tag_buffer.to_be_bytes());
         }
+        bytes.extend_from_slice(&self.body.throttle_time_ms.to_be_bytes());
+        bytes.extend_from_slice(&self.body.tag_buffer.to_be_bytes());
         bytes
     }
 }
@@ -80,7 +80,7 @@ fn main() {
                     error_code = 35;
                 }
                 let api_key = ResponseAPIKey {
-                    api_key: 18,
+                    api_key: 17,
                     min_version: 0,
                     max_version: 4,
                     tag_buffer: 0,
