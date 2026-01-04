@@ -1,22 +1,31 @@
 #![allow(unused_imports)]
-use std::io::Write;
+use std::io::{Read, Write};
 use std::net::TcpListener;
 
-struct Response {
-    message_size: u32,
-    header: ResponseHeader,
+enum ResponseHeader {
+    V0(ResponseHeaderV0),
 }
 
-struct ResponseHeader {
+struct KafkaResponseFrame {
+    message_size: i32,
+    response_header: ResponseHeader,
+}
+
+struct ResponseHeaderV0 {
     correlation_id: i32,
 }
 
-impl Response {
-    fn to_bytes(self) -> Vec<u8> {
-        let mut v = Vec::new();
-        v.extend_from_slice(&self.message_size.to_be_bytes());
-        v.extend_from_slice(&self.header.correlation_id.to_be_bytes());
-        v
+impl KafkaResponseFrame {
+    fn to_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::with_capacity(8);
+        bytes.extend_from_slice(&self.message_size.to_be_bytes());
+        match &self.response_header {
+            ResponseHeader::V0(header) => {
+                // correlation_id (INT32)
+                bytes.extend_from_slice(&header.correlation_id.to_be_bytes());
+            }
+        }
+        bytes
     }
 }
 
@@ -25,15 +34,21 @@ fn main() {
     for stream in listener.incoming() {
         match stream {
             Ok(mut stream) => {
-                let header = Response {
+                let mut size_buf = [0u8; 4];
+                stream.read_exact(&mut size_buf).unwrap();
+                let message_size = i32::from_be_bytes(size_buf);
+                let mut payload = vec![0u8; message_size as usize];
+                stream.read_exact(&mut payload).unwrap();
+                let correlation_id =
+                    i32::from_be_bytes([payload[4], payload[5], payload[6], payload[7]]);
+                let response = KafkaResponseFrame {
                     message_size: 0,
-                    header: ResponseHeader { correlation_id: 7 },
+                    response_header: ResponseHeader::V0(ResponseHeaderV0 { correlation_id }),
                 };
-                let bytes = header.to_bytes();
-                stream.write_all(&bytes).unwrap();
+                stream.write_all(&response.to_bytes()).unwrap();
             }
             Err(e) => {
-                println!("error: {}", e);
+                eprintln!("error: {}", e);
             }
         }
     }
